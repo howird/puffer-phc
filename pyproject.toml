@@ -46,6 +46,10 @@ torchvision = ">=0.18.1,<0.19"
 scipy = ">=1.10.1,<2"
 imageio = ">=2.36.0,<3"
 fsspec = ">=2024.10.0,<2025"
+debugpy = ">=1.8.5,<2"
+
+[tool.pixi.pypi-dependencies]
+isaacgym = { path = "./isaacgym/python", editable = true }
 
 [tool.pixi.activation]
 scripts = ["env_setup.sh"]
