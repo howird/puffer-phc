@@ -3,7 +3,7 @@
   pkgs,
   config,
   mkShell,
-  python310,
+  # python310,
 }:
 mkShell rec {
   packages = with pkgs;
@@ -30,8 +30,8 @@ mkShell rec {
 
   env =
     {
-      UV_PYTHON_DOWNLOADS = "never";
-      UV_PYTHON = python310.interpreter;
+      # UV_PYTHON_DOWNLOADS = "never";
+      # UV_PYTHON = python310.interpreter;
     }
     // lib.optionalAttrs pkgs.stdenv.isLinux {
       LD_LIBRARY_PATH = lib.makeLibraryPath (pkgs.pythonManylinuxPackages.manylinux1 ++ packages);
@@ -48,6 +48,6 @@ mkShell rec {
         uv venv
     fi
     source ".venv/bin/activate"
-    uv sync --extra ${if config.cudaSupport then "cuda" else "cpu"}
+    uv sync # --extra ${if config.cudaSupport then "cuda" else "cpu"}
   '';
 }
