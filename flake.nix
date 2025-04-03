@@ -30,7 +30,7 @@
       };
     in {
       devShells = rec {
-        default = pixi-impure;
+        default = uv-impure;
         pixi-impure = pkgs.callPackage ./nix/dev-shells/pixi-impure.nix {};
         uv-impure = pkgs.callPackage ./nix/dev-shells/uv-impure.nix {};
         fhsenv = pkgs.callPackage ./nix/dev-shells/fhsenv.nix {};
