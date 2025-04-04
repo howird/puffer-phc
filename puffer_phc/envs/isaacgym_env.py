@@ -3,7 +3,7 @@ import sys
 from isaacgym import gymapi
 
 
-def _sim_params(device_type):
+def _sim_params(sim_timestep, device_type):
     # Sim params: keep these hardcoded here for now
     sim_params = gymapi.SimParams()
 
@@ -39,14 +39,14 @@ class IsaacGymBase:
     def __init__(self, device_type, device_id, headless, sim_timestep=1.0 / 60.0, control_freq_inv=2):
         self.control_freq_inv = control_freq_inv
         self.dt = control_freq_inv * sim_timestep
-        self.sim_params = _sim_params(device_type)
+        self.sim_params = _sim_params(sim_timestep, device_type)
 
         compute_device = -1 if device_type != "cuda" else device_id
         graphics_device = -1 if headless else compute_device
 
         # Create sim and viewer
         self.gym = gymapi.acquire_gym()
-        self.sim = self.gym.create_sim(compute_device, graphics_device, gymapi.SIM_PHYSX, sim_params)
+        self.sim = self.gym.create_sim(compute_device, graphics_device, gymapi.SIM_PHYSX, self.sim_params)
         assert self.sim is not None, "Failed to create sim"
 
         self.enable_viewer_sync = True

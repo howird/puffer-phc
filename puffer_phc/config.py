@@ -3,7 +3,7 @@ from typing import Optional, Literal
 
 from tyro.conf import Suppress, Fixed
 
-from puffer_phc.envs.humanoid_phc import StateInit
+from puffer_phc.envs.state_init import StateInit
 
 
 @dataclass

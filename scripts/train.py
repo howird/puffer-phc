@@ -26,7 +26,7 @@ import pufferlib.cleanrl
 import pufferlib.vector
 
 from puffer_phc import clean_pufferl
-from puffer_phc.environment import make as env_creator
+from puffer_phc.env_pufferl import make as env_creator
 import puffer_phc.policy as policy_module
 
 from puffer_phc.config import EnvConfig, PolicyConfig, RNNConfig, TrainConfig
@@ -374,7 +374,8 @@ def rollout(vec_env, policy, eval_stats=None):
     ep_cnt = 0
     while True:
         with torch.no_grad():
-            obs = torch.as_tensor(obs).to(device)
+            # TODO: hardcoded device
+            obs = torch.as_tensor(obs).to("cuda")
             if hasattr(policy, "lstm"):
                 action, _, _, _, state = policy(obs, state)
             else:
