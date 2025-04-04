@@ -21,10 +21,16 @@ from puffer_phc.motion_lib import MotionLibSMPL, FixHeightMode
 from puffer_phc.torch_utils import to_torch, torch_rand_float
 
 from puffer_phc.body_sets import (
-    build_body_ids_tensor, BODY_NAMES
-    DOF_NAMES, REMOVE_NAMES, LIMB_WEIGHT_GROUP
-    KEY_BODIES, CONTACT_BODIES, TRACK_BODIES,
-    RESET_BODIES, EVAL_BODIES
+    build_body_ids_tensor,
+    BODY_NAMES,
+    DOF_NAMES,
+    REMOVE_NAMES,
+    LIMB_WEIGHT_GROUP,
+    KEY_BODIES,
+    CONTACT_BODIES,
+    TRACK_BODIES,
+    RESET_BODIES,
+    EVAL_BODIES,
 )
 
 
@@ -54,7 +60,7 @@ class HumanoidPHC:
         self.all_env_ids = torch.arange(self.cfg.num_envs).to(self.cfg.device)
 
         ### Robot
-        self._config_robot()  #  All robot configs should be here
+        self._config_robot()
         # NOTE: PHC does not use force sensors.
         self._create_force_sensors(sensor_joint_names=[])  # No sensor joints
 
@@ -94,7 +100,6 @@ class HumanoidPHC:
 
         return self.obs_buf
 
-
     def step(self, actions):
         ### Apply actions, which was self.pre_physics_step(actions)
         if self.reduce_action:
@@ -105,17 +110,17 @@ class HumanoidPHC:
 
         else:
             pd_tar = self._action_to_pd_targets(actions)
-            
+
             if self._freeze_hand:
                 hand_idx = DOF_NAMES.index("L_Hand") * 3
                 r_hand_idx = DOF_NAMES.index("R_Hand") * 3
-                pd_tar[:, hand_idx:hand_idx+3] = 0
-                pd_tar[:, r_hand_idx:r_hand_idx+3] = 0
+                pd_tar[:, hand_idx : hand_idx + 3] = 0
+                pd_tar[:, r_hand_idx : r_hand_idx + 3] = 0
             if self._freeze_toe:
                 toe_idx = DOF_NAMES.index("L_Toe") * 3
                 r_toe_idx = DOF_NAMES.index("R_Toe") * 3
-                pd_tar[:, toe_idx:toe_idx+3] = 0
-                pd_tar[:, r_toe_idx:r_toe_idx+3] = 0
+                pd_tar[:, toe_idx : toe_idx + 3] = 0
+                pd_tar[:, r_toe_idx : r_toe_idx + 3] = 0
 
         pd_tar_tensor = gymtorch.unwrap_tensor(pd_tar)
         self.gym.set_dof_position_target_tensor(self.sim, pd_tar_tensor)
@@ -176,7 +181,6 @@ class HumanoidPHC:
     #####################################################################
 
     def _config_robot(self):
-        
         # Calculate dof_subset
         disc_idxes = []
         for idx, name in enumerate(DOF_NAMES):
@@ -191,7 +195,9 @@ class HumanoidPHC:
         self.gender_beta = np.zeros(17)  # NOTE: gender (1) + betas (16)
 
         # And we use the same humanoid shapes for all the agents.
-        self.humanoid_shapes = torch.tensor(np.array([self.gender_beta] * self.cfg.num_envs)).float().to(self.cfg.device)
+        self.humanoid_shapes = (
+            torch.tensor(np.array([self.gender_beta] * self.cfg.num_envs)).float().to(self.cfg.device)
+        )
 
         # NOTE: The below SMPL assets must be present.
         asset_file_real = str(ASSET_DIR / "smpl_humanoid.xml")
@@ -211,17 +217,17 @@ class HumanoidPHC:
 
         self._dof_offsets = np.linspace(0, self.num_dof, self.num_bodies).astype(int)
 
-        assert self.num_bodies == len(
-            self.cfg.body_names
-        ), "Number of bodies in asset file does not match number of SMPL bodies"
+        assert self.num_bodies == len(self.cfg.body_names), (
+            "Number of bodies in asset file does not match number of SMPL bodies"
+        )
         assert self.num_dof == len(self._dof_names) * 3, "Number of DOF in asset file does not match number of SMPL DOF"
 
         # Check if the body ids are consistent between humanoid_asset and body_names (SMPL_MUJOCO_NAMES)
         for body_id, body_name in enumerate(self.cfg.body_names):
             body_id_asset = self.gym.find_asset_rigid_body_index(self.humanoid_asset, body_name)
-            assert (
-                body_id == body_id_asset
-            ), f"Body id {body_id} does not match index {body_id_asset} for body {body_name}"
+            assert body_id == body_id_asset, (
+                f"Body id {body_id} does not match index {body_id_asset} for body {body_name}"
+            )
 
     def _create_force_sensors(self, sensor_joint_names):
         sensor_pose = gymapi.Transform()
@@ -230,21 +236,21 @@ class HumanoidPHC:
             joint_idx = self.gym.find_asset_rigid_body_index(self.humanoid_asset, jt)
             self.gym.create_asset_force_sensor(self.humanoid_asset, joint_idx, sensor_pose)
 
-
     def _config_env(self):
-        self._termination_distances = to_torch(np.array([self.cfg.termination_distance] * self.num_bodies), device=self.cfg.device)
-        self._termination_distances_backup = self._termination_distances.clone() # keep backup for train/eval
+        self._termination_distances = to_torch(
+            np.array([self.cfg.termination_distance] * self.num_bodies), device=self.cfg.device
+        )
+        self._termination_distances_backup = self._termination_distances.clone()  # keep backup for train/eval
 
         self._key_body_ids = build_body_ids_tensor(BODY_NAMES, KEY_BODIES, self.cfg.device)
         self._contact_body_ids = build_body_ids_tensor(BODY_NAMES, CONTACT_BODIES, self.cfg.device)
         self._track_bodies_id = build_body_ids_tensor(BODY_NAMES, TRACK_BODIES, self.cfg.device)
 
         self._reset_bodies_id = build_body_ids_tensor(BODY_NAMES, RESET_BODIES, self.cfg.device)
-        self._reset_bodies_id_backup = self._reset_bodies_id # keep backup for train/eval
+        self._reset_bodies_id_backup = self._reset_bodies_id  # keep backup for train/eval
 
         # Used in https://github.com/kywch/PHC/blob/pixi/phc/learning/im_amp.py#L181
         self._eval_track_bodies_id = build_body_ids_tensor(BODY_NAMES, EVAL_BODIES, self.cfg.device)
-
 
     def _create_ground_plane(self):
         plane_params = gymapi.PlaneParams()
@@ -515,7 +521,9 @@ class HumanoidPHC:
         # NOTE: 13 comes from pos 3 + rot 4 + vel 3 + ang vel 3.
         # root_states[:, 7:13] = 0 means zeroing vel and ang vel.
 
-        self._humanoid_actor_ids = num_actors * torch.arange(self.cfg.num_envs, device=self.cfg.device, dtype=torch.int32)
+        self._humanoid_actor_ids = num_actors * torch.arange(
+            self.cfg.num_envs, device=self.cfg.device, dtype=torch.int32
+        )
 
         # create some wrapper tensors for different slices
         self._dof_state = gymtorch.wrap_tensor(dof_state_tensor)
@@ -538,7 +546,9 @@ class HumanoidPHC:
         self._rigid_body_ang_vel = self._rigid_body_state_reshaped[..., : self.num_bodies, 10:13]
 
         contact_force_tensor = gymtorch.wrap_tensor(contact_force_tensor)
-        self._contact_forces = contact_force_tensor.view(self.cfg.num_envs, bodies_per_env, 3)[..., : self.num_bodies, :]
+        self._contact_forces = contact_force_tensor.view(self.cfg.num_envs, bodies_per_env, 3)[
+            ..., : self.num_bodies, :
+        ]
 
     def _setup_env_buffers(self):
         self.obs_buf = torch.zeros((self.cfg.num_envs, self.num_obs), device=self.cfg.device, dtype=torch.float)

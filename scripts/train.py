@@ -40,15 +40,16 @@ class DebugConfig:
     def __call__(self):
         if self.enable:
             import debugpy
+
             debugpy.listen(self.port)
             print(f"Waiting for debugger attach to port: {self.port}")
             debugpy.wait_for_client()
-    
 
 
 @dataclass
 class AppConfig:
     """Application configuration"""
+
     policy_name: str = "PHCPolicy"
     rnn_name: Optional[str] = None
     mode: Literal["train", "play", "eval", "sweep"] = "train"
@@ -58,7 +59,7 @@ class AppConfig:
     ssc_lr: float = 0.0001
     skip_resample: bool = False
     final_eval: bool = False
-    
+
     # Configuration sections
     env: EnvConfig = field(default_factory=EnvConfig)
     policy: PolicyConfig = field(default_factory=PolicyConfig)
@@ -504,9 +505,7 @@ def sweep_carbs(args: AppConfig, sweep_count=500, max_suggestion_cost=3600):
         )
 
     # Add learning rate parameter
-    param_spaces.append(
-        carbs_param("train", "learning_rate", "log", sweep_parameters, search_center=args.ssc_lr)
-    )
+    param_spaces.append(carbs_param("train", "learning_rate", "log", sweep_parameters, search_center=args.ssc_lr))
 
     # batch_param = sweep_parameters['train']['parameters']['batch_size']
     # default_batch = (batch_param['max'] - batch_param['min']) // 2
@@ -563,12 +562,12 @@ def sweep_carbs(args: AppConfig, sweep_count=500, max_suggestion_cost=3600):
         # Update args with suggestion values
         for k, v in train_suggestion.items():
             setattr(args.train, k, v)
-            
+
         for k, v in env_suggestion.items():
             setattr(args.env, k, v)
-            
+
         args.track = True
-        
+
         # Update wandb config
         wandb.config.update({"train": asdict(args.train)}, allow_val_change=True)
         wandb.config.update({"env": asdict(args.env)}, allow_val_change=True)
@@ -579,7 +578,7 @@ def sweep_carbs(args: AppConfig, sweep_count=500, max_suggestion_cost=3600):
 
         try:
             vec_env = pufferlib.vector.make(env_creator, env_kwargs=asdict(args.env))
-            #TODO(howird): make sure my updates to make policy didnt mess anything up
+            # TODO(howird): make sure my updates to make policy didnt mess anything up
             policy = make_policy(vec_env.driver_env, args)
 
             stats, uptime = train(
@@ -625,21 +624,21 @@ if __name__ == "__main__":
     if args.mode == "play":
         args.env.num_envs = 16
         args.env.headless = False
-    
+
     # If sweep mode, run sweep and exit
     if args.mode == "sweep":
         sweep_carbs(args, sweep_count=500)
         sys.exit(0)
-    
+
     # Create the environment and policy
     vec_env = pufferlib.vector.make(env_creator, env_args=[args.env])
     policy = make_policy(vec_env.driver_env, args)
-    
+
     if args.checkpoint_path:
         checkpoint = torch.load(args.checkpoint_path, map_location=args.train.device)
         policy.load_state_dict(checkpoint["state_dict"])
         print(f"Loaded checkpoint from {args.checkpoint_path}")
-    
+
     # Train or evaluate based on mode
     # TODO(py310): use match statement
     if args.mode == "train":
@@ -652,14 +651,14 @@ if __name__ == "__main__":
 
     elif args.mode == "eval":
         import polars as pl
-        
+
         eval_stats = EvalStats(vec_env)
         rollout(vec_env, policy, eval_stats)
-        
+
         with open(f"eval_summary_{datetime.now().strftime('%m%d_%H%M')}.json", "w") as f:
             json.dump(eval_stats.results, f, indent=4)
-        
+
         df = pl.DataFrame(eval_stats.results_by_motion)
         df.write_csv(f"results_by_motion_{datetime.now().strftime('%m%d_%H%M')}.tsv", separator="\t")
-        
+
         eval_stats.update_env_and_close()

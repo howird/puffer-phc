@@ -36,19 +36,12 @@ def _sim_params(device_type):
 
 
 class IsaacGymBase:
-    def __init__(
-        self,
-        device_type,
-        device_id,
-        headless,
-        sim_timestep=1.0 / 60.0,
-        control_freq_inv=2
-    ):
+    def __init__(self, device_type, device_id, headless, sim_timestep=1.0 / 60.0, control_freq_inv=2):
         self.control_freq_inv = control_freq_inv
         self.dt = control_freq_inv * sim_timestep
         self.sim_params = _sim_params(device_type)
 
-        compute_device = -1 if device_type != "cuda" else device_id 
+        compute_device = -1 if device_type != "cuda" else device_id
         graphics_device = -1 if headless else compute_device
 
         # Create sim and viewer
@@ -69,7 +62,6 @@ class IsaacGymBase:
             cam_pos = gymapi.Vec3(20.0, 25.0, 3.0)
             cam_target = gymapi.Vec3(10.0, 15.0, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
-
 
     def reset(self):
         pass
@@ -105,4 +97,3 @@ class IsaacGymBase:
     def close(self):
         self.gym.destroy_viewer(self.viewer)
         self.gym.destroy_sim(self.sim)
-
