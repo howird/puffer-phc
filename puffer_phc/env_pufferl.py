@@ -62,6 +62,10 @@ class PHCPufferEnv(pufferlib.PufferEnv):
 
         self.raw_rewards = torch.zeros(5, dtype=torch.float32, device=self.cfg.device)
 
+    @property
+    def num_agents(self):
+        return self.cfg.num_envs
+
     def reset(self, seed=None):
         self.tick = 0
         self.env.reset()

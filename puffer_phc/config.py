@@ -22,8 +22,8 @@ class DeviceConfig:
 
 @dataclass
 class RewardConfig:
-    k_pos: int = 100
-    k_rot: int = 10
+    k_pos: float = 100.0
+    k_rot: float = 10.0
     k_vel: float = 0.1
     k_ang_vel: float = 0.1
     w_pos: float = 0.5
@@ -97,6 +97,8 @@ class EnvConfig(DeviceConfig):
     kd_scale: float = 1.0
     log_interval: int = 32
 
+    res_action: bool = False
+
     rew_power_coef: float = 0.0005
     env_spacing: int = 5
     state_init: StateInit = StateInit.Random
@@ -130,6 +132,10 @@ class EnvConfig(DeviceConfig):
 
     robot: Suppress[RobotConfig] = field(default_factory=RobotConfig)
     reward: Suppress[RewardConfig] = field(default_factory=RewardConfig)
+
+    @property
+    def num_agents(self) -> int:
+        return self.num_envs
 
 
 @dataclass

@@ -5,7 +5,7 @@ This module contains the definitions of various body part sets used for differen
 purposes in the PHC environment, such as tracking, contact detection, and evaluation.
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 # Complete list of all body parts in the SMPL humanoid model
 BODY_NAMES = (
@@ -39,7 +39,7 @@ BODY_NAMES = (
 DOF_NAMES = BODY_NAMES[1:]
 
 # Body parts excluded from certain calculations due to unreliable motion data
-REMOVE_NAMES = ["L_Hand", "R_Hand", "L_Toe", "R_Toe"]
+REMOVE_NAMES = ("L_Hand", "R_Hand", "L_Toe", "R_Toe")
 
 # Important body parts used for AMP observations
 KEY_BODIES = ("R_Ankle", "L_Ankle", "R_Wrist", "L_Wrist")
@@ -54,7 +54,7 @@ TRACK_BODIES = BODY_NAMES
 RESET_BODIES = TRACK_BODIES
 
 # Body parts used during evaluation (all except those in REMOVE_NAMES)
-EVAL_BODIES = [name for name in BODY_NAMES if name not in REMOVE_NAMES]
+EVAL_BODIES = tuple(name for name in BODY_NAMES if name not in REMOVE_NAMES)
 
 # Joint groups for limb weight calculations
 JOINT_GROUPS = [
@@ -140,7 +140,7 @@ def get_right_lower_indexes(dof_names: List[str]) -> List[int]:
     ]
 
 
-def build_body_ids_tensor(body_names: Tuple[str, ...], target_names: List[str] or Tuple[str, ...], device: str):
+def build_body_ids_tensor(body_names: Tuple[str, ...], target_names: Union[List[str], Tuple[str, ...]], device: str):
     """
     Build a tensor of body IDs from a list of body names.
 

@@ -1,5 +1,7 @@
 import os
 from types import SimpleNamespace
+from typing import Dict, Union
+from dataclasses import asdict
 
 from isaacgym import gymapi
 
@@ -245,7 +247,7 @@ class HumanoidPHC:
         self._track_bodies_id = build_body_ids_tensor(BODY_NAMES, TRACK_BODIES, self.cfg.device)
 
         self._reset_bodies_id = build_body_ids_tensor(BODY_NAMES, RESET_BODIES, self.cfg.device)
-        self._reset_bodies_id_backup = self._reset_bodies_id  # keep backup for train/eval
+        self._reset_bodies_id_backup = self._reset_bodies_id.clone()  # keep backup for train/eval
 
         # Used in https://github.com/kywch/PHC/blob/pixi/phc/learning/im_amp.py#L181
         self._eval_track_bodies_id = build_body_ids_tensor(BODY_NAMES, EVAL_BODIES, self.cfg.device)
@@ -606,7 +608,7 @@ class HumanoidPHC:
         # amp_batch_size is fixed to the number of envs
         self._amp_obs_demo_buf = torch.zeros_like(self._amp_obs_buf)
 
-        # NOTE: These don't seem to be used, except ref_dof_pos when self._res_action is True
+        # NOTE: These don't seem to be used, except ref_dof_pos when self.cfg.res_action is True
         # self.ref_body_pos = torch.zeros_like(self._rigid_body_pos)
         # self.ref_body_vel = torch.zeros_like(self._rigid_body_vel)
         # self.ref_body_rot = torch.zeros_like(self._rigid_body_rot)
@@ -1107,7 +1109,7 @@ class HumanoidPHC:
             self.cfg.robot.has_upright_start,  # Constant: True
         )
 
-        if self._res_action and save_buffer:
+        if self.cfg.res_action and save_buffer:
             # self.ref_body_pos[env_ids] = ref_rb_pos
             # self.ref_body_vel[env_ids] = ref_body_vel
             # self.ref_body_rot[env_ids] = ref_rb_rot
@@ -1210,8 +1212,8 @@ class HumanoidPHC:
     #####################################################################
 
     def _action_to_pd_targets(self, action):
-        # NOTE: self._res_action is False by default
-        if self._res_action:
+        # NOTE: self.cfg.res_action is False by default
+        if self.cfg.res_action:
             pd_tar = self.ref_dof_pos + self._pd_action_scale * action
             pd_lower = self._dof_pos - np.pi / 2
             pd_upper = self._dof_pos + np.pi / 2
@@ -1261,7 +1263,7 @@ class HumanoidPHC:
                 ref_rb_rot,
                 ref_body_vel,
                 ref_body_ang_vel,
-                self.cfg.reward,
+                self.rwd_specs,
             )
 
         else:
@@ -1285,7 +1287,7 @@ class HumanoidPHC:
                 ref_rb_rot_subset,
                 ref_body_vel_subset,
                 ref_body_ang_vel_subset,
-                self.cfg.reward,
+                self.rwd_specs,
             )
 
         if self.cfg.reward.use_power_reward:
@@ -1297,6 +1299,12 @@ class HumanoidPHC:
 
             self.rew_buf[:] += power_reward
             self.reward_raw[:, -1] = power_reward
+
+    @property
+    def rwd_specs(self) -> Dict[str, Union[float, bool]]:
+        if not hasattr(self, "_rwd_specs"):
+            self._rwd_specs = asdict(self.cfg.reward)
+        return self._rwd_specs
 
     def _compute_reset(self):
         time = (
