@@ -1,9 +1,11 @@
 # Artifacts
-.pixi/
 experiments/
 output/
-pixi.lock
 wandb/
+data/
+smpl/*
+!smpl/README.md
+isaacgym/
 
 
 # Byte-compiled / optimized / DLL files
